@@ -1,0 +1,27 @@
+{
+    "name": "Employee-Onboarding-Bot",
+    "description": "Creates AD, email, and HR-system accounts for new hires from an onboarding request queue.",
+    "main": "Main.xaml",
+    "dependencies": {
+          "UiPath.System.Activities": "[24.10.3]",
+          "UiPath.Testing.Activities": "[24.10.2]"
+    },
+    "webServices": [],
+    "schemaVersion": "4.0",
+    "studioVersion": "24.10.3.0",
+    "projectId": "85af129e-0724-47ec-9d41-ea27864ba314",
+    "libraryOptions": null,
+    "designOptions": {
+          "projectProfile": "Developer",
+          "outputType": "Process",
+          "fileInfoCollection": [
+                  {
+                            "FilePath": "Main.xaml",
+                            "IsMainFile": true,
+                            "UniqueId": "a5ad64d7-38bc-4cee-a137-ae6b94e3ce86"
+                  }
+          ]
+    },
+    "expressionLanguage": "VisualBasic",
+    "targetFramework": "Windows"
+}
