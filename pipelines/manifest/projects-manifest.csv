@@ -1,0 +1,7 @@
+PathToProjectJson,PackageName,OrchestratorFolder,ProcessName,RunTests
+processes/Invoice-Data-Extraction/project.json,Invoice-Data-Extraction,shared,Invoice-Data-Extraction-Process,true
+processes/Contract-Renewal-Reminder/project.json,Contract-Renewal-Reminder,shared,Contract-Renewal-Reminder-Process,true
+processes/Customer-Refund-Processing/project.json,Customer-Refund-Processing,shared,Customer-Refund-Processing-Process,true
+processes/Email-Attachment-Sorter/project.json,Email-Attachment-Sorter,shared,Email-Attachment-Sorter-Process,true
+processes/Employee-Onboarding-Bot/project.json,Employee-Onboarding-Bot,shared,Employee-Onboarding-Bot-Process,true
+processes/Expense-Report-Validator/project.json,Expense-Report-Validator,shared,Expense-Report-Validator-Process,true
