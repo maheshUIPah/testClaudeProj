@@ -1,0 +1,27 @@
+{
+    "name": "Invoice-Data-Extraction",
+    "description": "Extracts invoice header and line-item data from scanned PDFs into a structured queue item.",
+    "main": "Main.xaml",
+    "dependencies": {
+          "UiPath.System.Activities": "[24.10.3]",
+          "UiPath.Testing.Activities": "[24.10.2]"
+    },
+    "webServices": [],
+    "schemaVersion": "4.0",
+    "studioVersion": "24.10.3.0",
+    "projectId": "3702ec84-9cf0-46c6-ba05-339b27bab69b",
+    "libraryOptions": null,
+    "designOptions": {
+          "projectProfile": "Developer",
+          "outputType": "Process",
+          "fileInfoCollection": [
+                  {
+                            "FilePath": "Main.xaml",
+                            "IsMainFile": true,
+                            "UniqueId": "26fa578c-672d-434f-801c-9fb9e9ab43a9"
+                  }
+          ]
+    },
+    "expressionLanguage": "VisualBasic",
+    "targetFramework": "Windows"
+}
