@@ -1,0 +1,27 @@
+{
+    "name": "Customer-Refund-Processing",
+    "description": "Validates refund requests against policy rules and posts approved refunds to the finance system.",
+    "main": "Main.xaml",
+    "dependencies": {
+          "UiPath.System.Activities": "[24.10.3]",
+          "UiPath.Testing.Activities": "[24.10.2]"
+    },
+    "webServices": [],
+    "schemaVersion": "4.0",
+    "studioVersion": "24.10.3.0",
+    "projectId": "5089679b-f735-4287-bd59-007abefdef91",
+    "libraryOptions": null,
+    "designOptions": {
+          "projectProfile": "Developer",
+          "outputType": "Process",
+          "fileInfoCollection": [
+                  {
+                            "FilePath": "Main.xaml",
+                            "IsMainFile": true,
+                            "UniqueId": "a56eab98-0082-42e3-9394-66bd2125ace4"
+                  }
+          ]
+    },
+    "expressionLanguage": "VisualBasic",
+    "targetFramework": "Windows"
+}
