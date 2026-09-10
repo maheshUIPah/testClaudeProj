@@ -1,0 +1,157 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Main" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:this="clr-namespace:" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:upa="clr-namespace:UiPath.Pipelines.Activities;assembly=UiPath.Pipelines.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    ============================================================================
+    MultiProjectPromotion - built on UiPath's official "Copy package between
+    environments" Automation Ops Pipeline template (UiPath.Pipelines.Activities
+    2.0.0, package v2.0.1). The upa:DownloadPackage / upa:PublishPackage
+    activities and argument names below are copied from that shipped
+    template. The only change is looping the Download/Publish pair once per
+    row of projects-manifest.csv (using each row's PackageName) instead of a
+    single PackageName per run, so all processes for a customer promote
+    Dev -> UAT -> Prod together from one pipeline definition. Assumes every
+    process in the manifest is promoted at the same PackageVersion for a
+    given run (the coordinated-release model); split into multiple manifests
+    if processes need independent release trains.
+    ============================================================================
+  -->
+  <x:Members>
+    <x:Property Name="RepositoryUrl" Type="InArgument(x:String)" />
+    <x:Property Name="BuildNumber" Type="InArgument(x:String)" />
+    <x:Property Name="CommitSha" Type="InArgument(x:String)" />
+    <x:Property Name="CommitterUsername" Type="InArgument(x:String)" />
+    <x:Property Name="ManifestRelativePath" Type="InArgument(x:String)" />
+    <x:Property Name="PackageVersion" Type="InArgument(x:String)" />
+    <x:Property Name="SourceOrchestratorUrl" Type="InArgument(x:String)" />
+    <x:Property Name="SourceOrchestratorFolder" Type="InArgument(x:String)" />
+    <x:Property Name="DestinationOrchestratorUrl" Type="InArgument(x:String)" />
+    <x:Property Name="DestinationOrchestratorFolder" Type="InArgument(x:String)" />
+  </x:Members>
+  <TextExpression.NamespacesForImplementation>
+    <scg:List x:TypeArguments="x:String" Capacity="32">
+      <x:String>System.Activities</x:String>
+      <x:String>System.Activities.Statements</x:String>
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Pipelines.Activities</x:String>
+      <x:String>UiPath.Pipelines.Activities.Stages</x:String>
+      <x:String>UiPath.Pipelines.Activities.BaseActivities</x:String>
+      <x:String>UiPath.DataTableUtilities</x:String>
+    </scg:List>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <scg:List x:TypeArguments="AssemblyReference" Capacity="32">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>UiPath.Orchestrator.Client</AssemblyReference>
+      <AssemblyReference>UiPath.Pipelines.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Platform</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Workflow</AssemblyReference>
+      <AssemblyReference>WindowsBase</AssemblyReference>
+    </scg:List>
+  </TextExpression.ReferencesForImplementation>
+
+  <Sequence DisplayName="Pipeline sequence" sap2010:WorkflowViewState.IdRef="Sequence_Main">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Name="repositoryPath" />
+      <Variable x:TypeArguments="sd:DataTable" Name="ManifestTable" />
+      <Variable x:TypeArguments="x:Int32" Name="FailureCount" Default="0" />
+      <Variable x:TypeArguments="x:Int32" Name="ProjectCount" Default="0" />
+    </Sequence.Variables>
+
+    <ui:LogMessage DisplayName="Log Promotion Start" Level="Info" Message="[&quot;MultiProjectPromotion started. &quot; &amp; SourceOrchestratorFolder &amp; &quot; -&gt; &quot; &amp; DestinationOrchestratorFolder &amp; &quot;, version &quot; &amp; PackageVersion]" />
+
+    <!-- Clone once, purely to read the manifest file that travels with the source code -->
+    <upa:Stage DisplayName="Clone">
+      <upa:Stage.Activities>
+        <ActivityAction>
+          <Sequence>
+            <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
+            <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
+          </Sequence>
+        </ActivityAction>
+      </upa:Stage.Activities>
+    </upa:Stage>
+
+    <ui:ReadCsv DisplayName="Read Projects Manifest" FilePath="[Path.Combine(repositoryPath, ManifestRelativePath)]" Delimiter="," DataTable="[ManifestTable]" />
+
+    <ForEach x:TypeArguments="sd:DataRow" DisplayName="For Each Project In Manifest" Values="[ManifestTable.AsEnumerable()]">
+      <ActivityAction x:TypeArguments="sd:DataRow">
+        <ActivityAction.Argument>
+          <DelegateInArgument x:TypeArguments="sd:DataRow" Name="ProjectRow" />
+        </ActivityAction.Argument>
+        <Sequence DisplayName="Process One Manifest Row">
+          <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="packagePath" />
+          </Sequence.Variables>
+          <Assign DisplayName="Track Project Count">
+            <Assign.To>
+              <OutArgument x:TypeArguments="x:Int32">[ProjectCount]</OutArgument>
+            </Assign.To>
+            <Assign.Value>
+              <InArgument x:TypeArguments="x:Int32">[ProjectCount + 1]</InArgument>
+            </Assign.Value>
+          </Assign>
+          <TryCatch DisplayName="Isolate Failures Per Project">
+            <TryCatch.Try>
+              <Sequence>
+                <ui:LogMessage DisplayName="Log Project Start" Level="Info" Message="[&quot;Promoting: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; PackageVersion]" />
+
+                <!-- Download package - identical attributes to the official "Download package" stage -->
+                <ui:LogMessage DisplayName="Log Downloading" Level="Trace" Message="[&quot;Downloading &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString]" />
+                <upa:DownloadPackage DisplayName="Download Package" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" IsLibrary="False" FolderName="[SourceOrchestratorFolder]" OrchestratorUrl="[SourceOrchestratorUrl]" PackagePath="[packagePath]" TimeoutMS="60000" />
+                <ui:LogMessage DisplayName="Log Downloaded" Level="Info" Message="[&quot;Downloaded &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; PackageVersion &amp; &quot; to &quot; &amp; packagePath]" />
+
+                <!-- Publish package - identical attributes to the official "Publish package" stage -->
+                <ui:LogMessage DisplayName="Log Publishing" Level="Trace" Message="[&quot;Publishing &quot; &amp; packagePath &amp; &quot; to &quot; &amp; DestinationOrchestratorUrl &amp; &quot; folder: &quot; &amp; DestinationOrchestratorFolder]" />
+                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[packagePath]" OrchestratorUrl="[DestinationOrchestratorUrl]" FolderName="[DestinationOrchestratorFolder]" TimeoutMS="60000" />
+                <ui:LogMessage DisplayName="Log Published" Level="Info" Message="[&quot;Published &quot; &amp; packagePath &amp; &quot; to &quot; &amp; DestinationOrchestratorUrl &amp; &quot; folder: &quot; &amp; DestinationOrchestratorFolder]" />
+
+                <!-- Update process so the destination folder's Process points at the newly-promoted version -->
+                <upa:UpdateProcess DisplayName="Update Process on destination" OrchestratorUrl="[DestinationOrchestratorUrl]" FolderName="[DestinationOrchestratorFolder]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
+                <ui:LogMessage DisplayName="Log Project Success" Level="Info" Message="[&quot;Promoted: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; PackageVersion &amp; &quot; to &quot; &amp; DestinationOrchestratorFolder]" />
+              </Sequence>
+            </TryCatch.Try>
+            <TryCatch.Catches>
+              <Catch x:TypeArguments="System.Exception">
+                <ActivityAction x:TypeArguments="System.Exception">
+                  <ActivityAction.Argument>
+                    <DelegateInArgument x:TypeArguments="System.Exception" Name="ex" />
+                  </ActivityAction.Argument>
+                  <Sequence DisplayName="Log Failure And Continue Batch">
+                    <Assign DisplayName="Increment FailureCount">
+                      <Assign.To>
+                        <OutArgument x:TypeArguments="x:Int32">[FailureCount]</OutArgument>
+                      </Assign.To>
+                      <Assign.Value>
+                        <InArgument x:TypeArguments="x:Int32">[FailureCount + 1]</InArgument>
+                      </Assign.Value>
+                    </Assign>
+                    <ui:LogMessage DisplayName="Log Project Failure" Level="Error" Message="[&quot;FAILED: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; - &quot; &amp; ex.Message]" />
+                  </Sequence>
+                </ActivityAction>
+              </Catch>
+            </TryCatch.Catches>
+          </TryCatch>
+        </Sequence>
+      </ActivityAction>
+    </ForEach>
+
+    <ui:LogMessage DisplayName="Log Promotion Summary" Level="Info" Message="[&quot;MultiProjectPromotion run complete. &quot; &amp; (ProjectCount - FailureCount).ToString &amp; &quot; of &quot; &amp; ProjectCount.ToString &amp; &quot; projects promoted.&quot;]" />
+
+    <If Condition="[FailureCount &gt; 0]" DisplayName="Fail Job If Any Project Failed">
+      <If.Then>
+        <Throw Exception="[New Exception(FailureCount.ToString &amp; &quot; of &quot; &amp; ProjectCount.ToString &amp; &quot; projects failed to promote in this run - see per-project Error log lines above.&quot;)]" />
+      </If.Then>
+    </If>
+  </Sequence>
+</Activity>

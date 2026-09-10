@@ -1,0 +1,79 @@
+{
+  "name": "MultiProjectPromotion",
+  "projectId": "b6b2b3f0-6a2e-4b1a-9b0e-100000000002",
+  "description": "Multi-project extension of UiPath's official 'Copy package between environments' Automation Ops Pipeline template (v2.0.1): Download package from a source Orchestrator folder, Publish it to a destination Orchestrator folder, looped over every project listed in projects-manifest.csv so one pipeline run promotes all of them together (e.g. shared/DEV -> mk/UAT, or mk/UAT -> mk-laptop/PROD). Per-project failures are isolated so one broken project does not stop the batch; the run still fails overall if any project failed.",
+  "main": "Main.xaml",
+  "dependencies": {
+    "UiPath.Pipelines.Activities": "2.0.0",
+    "UiPath.System.Runtime.Portable": "23.4.2",
+    "UiPath.WebAPI.Activities": "1.13.2"
+  },
+  "webServices": [],
+  "entitiesStores": [],
+  "schemaVersion": "4.0",
+  "studioVersion": "21.2.0.0",
+  "projectVersion": "1.0.0",
+  "runtimeOptions": {
+    "autoDispose": false,
+    "netFrameworkLazyLoading": false,
+    "isPausable": true,
+    "isAttended": false,
+    "requiresUserInteraction": false,
+    "supportsPersistence": true,
+    "workflowSerialization": "DataContract",
+    "excludedLoggedData": ["Private:*", "*password*"],
+    "executionType": "Workflow",
+    "readyForPiP": false,
+    "startsInPiP": false,
+    "mustRestoreAllDependencies": false,
+    "pipType": "ChildSession"
+  },
+  "designOptions": {
+    "projectProfile": "Developement",
+    "outputType": "Process",
+    "libraryOptions": {"includeOriginalXaml": false, "privateWorkflows": []},
+    "processOptions": {"ignoredFiles": []},
+    "fileInfoCollection": [],
+    "modernBehavior": false,
+    "saveToCloud": false
+  },
+  "arguments": {
+    "input": [
+      {"name": "RepositoryUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+      {"name": "BuildNumber", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+      {"name": "CommitSha", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+      {"name": "CommitterUsername", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+      {"name": "ManifestRelativePath", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+      {"name": "PackageVersion", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+      {"name": "SourceOrchestratorUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+      {"name": "SourceOrchestratorFolder", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+      {"name": "DestinationOrchestratorUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+      {"name": "DestinationOrchestratorFolder", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false}
+    ],
+    "output": []
+  },
+  "expressionLanguage": "VisualBasic",
+  "entryPoints": [
+    {
+      "filePath": "Main.xaml",
+      "uniqueId": "dc8760a5-8175-4ebe-9af2-a3308f8b55e2",
+      "input": [
+        {"name": "RepositoryUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+        {"name": "BuildNumber", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+        {"name": "CommitSha", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+        {"name": "CommitterUsername", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": true},
+        {"name": "ManifestRelativePath", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+        {"name": "PackageVersion", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+        {"name": "SourceOrchestratorUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+        {"name": "SourceOrchestratorFolder", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+        {"name": "DestinationOrchestratorUrl", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false},
+        {"name": "DestinationOrchestratorFolder", "type": "System.String, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "required": false, "hasDefault": false}
+      ],
+      "output": []
+    }
+  ],
+  "isTemplate": false,
+  "templateProjectData": {},
+  "publishData": {},
+  "targetFramework": "Portable"
+}
