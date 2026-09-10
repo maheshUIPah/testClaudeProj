@@ -1,14 +1,169 @@
-<Activity mc:Ignorable="sap sap2010" x:Class="Employee_Onboarding_Bot" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Activity mc:Ignorable="sap sap2010" x:Class="Employee_Onboarding_Bot" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:uic="clr-namespace:UiPath.Core;assembly=UiPath.Core.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    Enterprise-grade process template.
+    Pattern: Initialization -> Process (bounded retry, Business vs System
+    exception handling) -> End Process. Business steps below are documented
+    placeholders (Comment + LogMessage) describing exactly what this process
+    does; replace each placeholder step with the real activity(ies) for that
+    step without changing the surrounding retry/exception/logging scaffold.
+  -->
   <TextExpression.NamespacesForImplementation>
     <sco:Collection x:TypeArguments="x:String" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System">
       <x:String>System</x:String>
       <x:String>System.Activities.Statements</x:String>
       <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Core</x:String>
     </sco:Collection>
   </TextExpression.NamespacesForImplementation>
-  <Sequence sap2010:WorkflowViewState.IdRef="Sequence_Main">
-    <ui:LogMessage DisplayName="Log Start" Level="Info" Message="Employee-Onboarding-Bot - starting run" />
-    <ui:LogMessage DisplayName="Log Business Step" Level="Info" Message="Creates AD, email, and HR-system accounts for new hires from an onboarding request queue." />
-    <ui:LogMessage DisplayName="Log Complete" Level="Info" Message="Employee-Onboarding-Bot - completed successfully" />
+  <Sequence sap2010:WorkflowViewState.IdRef="Sequence_Main" DisplayName="Main - Employee-Onboarding-Bot">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:Int32" Default="3" Name="MaxRetryCount" />
+      <Variable x:TypeArguments="x:Int32" Default="0" Name="RetryCount" />
+      <Variable x:TypeArguments="x:Boolean" Default="False" Name="IsSuccessful" />
+      <Variable x:TypeArguments="x:String" Default="In Progress" Name="TransactionStatus" />
+      <Variable x:TypeArguments="x:String" Name="TransactionID" />
+      <Variable x:TypeArguments="System.DateTime" Name="StartTime" />
+    </Sequence.Variables>
+
+    <Sequence DisplayName="1. Initialization">
+      <Assign DisplayName="Set TransactionID" sap2010:WorkflowViewState.IdRef="Assign_1">
+        <Assign.To>
+          <OutArgument x:TypeArguments="x:String">[TransactionID]</OutArgument>
+        </Assign.To>
+        <Assign.Value>
+          <InArgument x:TypeArguments="x:String">[Guid.NewGuid.ToString]</InArgument>
+        </Assign.Value>
+      </Assign>
+      <Assign DisplayName="Set StartTime" sap2010:WorkflowViewState.IdRef="Assign_2">
+        <Assign.To>
+          <OutArgument x:TypeArguments="System.DateTime">[StartTime]</OutArgument>
+        </Assign.To>
+        <Assign.Value>
+          <InArgument x:TypeArguments="System.DateTime">[DateTime.Now]</InArgument>
+        </Assign.Value>
+      </Assign>
+      <ui:LogMessage DisplayName="Log Process Start" Level="Info" Message="[&quot;Employee-Onboarding-Bot - starting run. TransactionID=&quot; &amp; TransactionID]" />
+    </Sequence>
+
+    <Sequence DisplayName="2. Process (bounded retry)">
+      <While DisplayName="Retry Until Success Or MaxRetryCount" Condition="[(Not IsSuccessful) AndAlso (RetryCount &lt; MaxRetryCount)]">
+        <TryCatch DisplayName="Attempt {RetryCount + 1} of MaxRetryCount">
+          <TryCatch.Try>
+            <Sequence DisplayName="Business Logic">
+              <Sequence DisplayName="1. Retrieve Onboarding Request">
+                <Comment DisplayName="Business step: Retrieve the next onboarding request from the queue" />
+                <ui:LogMessage DisplayName="Log Step - Retrieve Onboarding Request" Level="Info" Message="[&quot;Employee-Onboarding-Bot: Retrieve the next onboarding request from the queue&quot;]" />
+
+              </Sequence>
+              <Sequence DisplayName="2. Validate Mandatory Fields">
+                <Comment DisplayName="Business step: Validate the request contains all mandatory fields (name, start date, department, manager)" />
+                <ui:LogMessage DisplayName="Log Step - Validate Mandatory Fields" Level="Info" Message="[&quot;Employee-Onboarding-Bot: Validate the request contains all mandatory fields (name, start date, department, manager)&quot;]" />
+                <!-- Enterprise pattern: business-rule failures raise BusinessRuleException
+                     (caught above, logged, NOT retried) rather than a generic exception.
+                     Wire the real condition for "Onboarding request is missing one or more mandatory fields" here. -->
+                <!-- If <business condition true> Then Throw New uic:BusinessRuleException("Onboarding request is missing one or more mandatory fields") -->
+              </Sequence>
+              <Sequence DisplayName="3. Create AD Account">
+                <Comment DisplayName="Business step: Create the Active Directory account for the new hire" />
+                <ui:LogMessage DisplayName="Log Step - Create AD Account" Level="Info" Message="[&quot;Employee-Onboarding-Bot: Create the Active Directory account for the new hire&quot;]" />
+
+              </Sequence>
+              <Sequence DisplayName="4. Provision Mailbox">
+                <Comment DisplayName="Business step: Provision the mailbox and required distribution-list membership" />
+                <ui:LogMessage DisplayName="Log Step - Provision Mailbox" Level="Info" Message="[&quot;Employee-Onboarding-Bot: Provision the mailbox and required distribution-list membership&quot;]" />
+
+              </Sequence>
+              <Sequence DisplayName="5. Notify Hiring Manager">
+                <Comment DisplayName="Business step: Create the HR-system record and notify the hiring manager" />
+                <ui:LogMessage DisplayName="Log Step - Notify Hiring Manager" Level="Info" Message="[&quot;Employee-Onboarding-Bot: Create the HR-system record and notify the hiring manager&quot;]" />
+
+              </Sequence>
+              <Assign DisplayName="Mark Successful" sap2010:WorkflowViewState.IdRef="Assign_Success">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:Boolean">[IsSuccessful]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:Boolean">True</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Set Status Success" sap2010:WorkflowViewState.IdRef="Assign_StatusOk">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[TransactionStatus]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">Success</InArgument>
+                </Assign.Value>
+              </Assign>
+            </Sequence>
+          </TryCatch.Try>
+          <TryCatch.Catches>
+            <Catch x:TypeArguments="uic:BusinessRuleException" DisplayName="Catch Business Rule Exception">
+              <ActivityAction x:TypeArguments="uic:BusinessRuleException">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="uic:BusinessRuleException" Name="businessEx" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Handle Business Exception (no retry)">
+                  <ui:LogMessage DisplayName="Log Business Exception" Level="Warn" Message="[&quot;Business rule violation on TransactionID=&quot; &amp; TransactionID &amp; &quot; - &quot; &amp; businessEx.Message]" />
+                  <Assign DisplayName="Set Status Business Failure" sap2010:WorkflowViewState.IdRef="Assign_StatusBiz">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:String">[TransactionStatus]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:String">Failed - Business Rule</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                  <Assign DisplayName="Stop Retry Loop" sap2010:WorkflowViewState.IdRef="Assign_StopBiz">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Boolean">[IsSuccessful]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Boolean">True</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                </Sequence>
+              </ActivityAction>
+            </Catch>
+            <Catch x:TypeArguments="System.Exception" DisplayName="Catch System Exception">
+              <ActivityAction x:TypeArguments="System.Exception">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="System.Exception" Name="systemEx" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Handle System Exception (retry)">
+                  <Assign DisplayName="Increment RetryCount" sap2010:WorkflowViewState.IdRef="Assign_Retry">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Int32">[RetryCount]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Int32">[RetryCount + 1]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                  <ui:LogMessage DisplayName="Log System Exception" Level="Error" Message="[&quot;System exception on TransactionID=&quot; &amp; TransactionID &amp; &quot; (attempt &quot; &amp; RetryCount.ToString &amp; &quot; of &quot; &amp; MaxRetryCount.ToString &amp; &quot;) - &quot; &amp; systemEx.Message]" />
+                  <Assign DisplayName="Set Status System Failure" sap2010:WorkflowViewState.IdRef="Assign_StatusSys">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:String">[TransactionStatus]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:String">Failed - System Exception</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                  <If DisplayName="Exhausted Retries?" Condition="[RetryCount &gt;= MaxRetryCount]">
+                    <If.Then>
+                      <Sequence DisplayName="Rethrow To Fail The Job">
+                        <ui:LogMessage DisplayName="Log Max Retries Exhausted" Level="Fatal" Message="[&quot;MaxRetryCount exceeded for TransactionID=&quot; &amp; TransactionID &amp; &quot; - failing the job&quot;]" />
+                        <Rethrow />
+                      </Sequence>
+                    </If.Then>
+                  </If>
+                </Sequence>
+              </ActivityAction>
+            </Catch>
+          </TryCatch.Catches>
+        </TryCatch>
+      </While>
+    </Sequence>
+
+    <Sequence DisplayName="3. End Process">
+      <ui:LogMessage DisplayName="Log Process Complete" Level="Info" Message="[&quot;Employee-Onboarding-Bot - finished. TransactionID=&quot; &amp; TransactionID &amp; &quot; Status=&quot; &amp; TransactionStatus &amp; &quot; ElapsedSeconds=&quot; &amp; DateTime.Now.Subtract(StartTime).TotalSeconds.ToString(&quot;F1&quot;)]" />
+    </Sequence>
   </Sequence>
 </Activity>
