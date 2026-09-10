@@ -1,0 +1,230 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Main" this:Main.SkipValidation="False" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:njl="clr-namespace:Newtonsoft.Json.Linq;assembly=Newtonsoft.Json" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:this="clr-namespace:" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:upa="clr-namespace:UiPath.Pipelines.Activities;assembly=UiPath.Pipelines.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    ============================================================================
+    MultiProjectCI - built on UiPath's official "Update with tests" Automation
+    Ops Pipeline template (UiPath.Pipelines.Activities 2.0.0, package v2.0.1).
+    Every upa:* activity below (Clone, Analyze, RunTests, Build, PublishPackage,
+    UpdateProcess) and its argument names are copied from that shipped
+    template - nothing invented. The only change is: instead of one
+    ProjectPath/ProcessName/OrchestratorFolder per pipeline run, this version
+    clones the repo once and then loops the Analyze/Test/Build/Publish/Update
+    sequence once per row of projects-manifest.csv, so N independent projects
+    promote from a single pipeline definition. Per-project failures are
+    isolated (TryCatch) so one broken project does not abort the batch; the
+    run still ends in Faulted status if any project failed, so Orchestrator/
+    Automation Ops reports the batch truthfully.
+    ============================================================================
+  -->
+  <x:Members>
+    <x:Property Name="RepositoryUrl" Type="InArgument(x:String)" />
+    <x:Property Name="RepositoryBranch" Type="InArgument(x:String)" />
+    <x:Property Name="RepositoryType" Type="InArgument(x:String)" />
+    <x:Property Name="BuildNumber" Type="InArgument(x:String)" />
+    <x:Property Name="CommitSha" Type="InArgument(x:String)" />
+    <x:Property Name="CommitterUsername" Type="InArgument(x:String)" />
+    <x:Property Name="ManifestRelativePath" Type="InArgument(x:String)" />
+    <x:Property Name="AnalyzePolicy" Type="InArgument(upa:AnalyzePolicy)" />
+    <x:Property Name="SkipTesting" Type="InArgument(x:Boolean)" />
+    <x:Property Name="SkipValidation" Type="InArgument(x:Boolean)" />
+    <x:Property Name="OrchestratorUrl" Type="InArgument(x:String)" />
+    <x:Property Name="OrchestratorTestingFolder" Type="InArgument(x:String)" />
+  </x:Members>
+  <TextExpression.NamespacesForImplementation>
+    <scg:List x:TypeArguments="x:String" Capacity="64">
+      <x:String>System.Activities</x:String>
+      <x:String>System.Activities.Statements</x:String>
+      <x:String>System.Activities.Expressions</x:String>
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>Microsoft.VisualBasic.Activities</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Pipelines.Activities</x:String>
+      <x:String>UiPath.Pipelines.Activities.Stages</x:String>
+      <x:String>UiPath.Pipelines.Activities.BaseActivities</x:String>
+      <x:String>UiPath.Pipelines.Activities.AutomationOps</x:String>
+      <x:String>UiPath.Shared.Activities</x:String>
+      <x:String>UiPath.Shared.Telemetry</x:String>
+      <x:String>Newtonsoft.Json.Linq</x:String>
+      <x:String>Newtonsoft.Json</x:String>
+      <x:String>System.Reflection</x:String>
+      <x:String>UiPath.Platform.ResourceHandling</x:String>
+      <x:String>UiPath.DataTableUtilities</x:String>
+    </scg:List>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <scg:List x:TypeArguments="AssemblyReference" Capacity="84">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>Newtonsoft.Json</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Private.Uri</AssemblyReference>
+      <AssemblyReference>UiPath.Orchestrator.Client</AssemblyReference>
+      <AssemblyReference>UiPath.Pipelines.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Platform</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Web.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Workflow</AssemblyReference>
+      <AssemblyReference>WindowsBase</AssemblyReference>
+    </scg:List>
+  </TextExpression.ReferencesForImplementation>
+
+  <Sequence DisplayName="Pipeline sequence" sap2010:WorkflowViewState.IdRef="Sequence_Main">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Name="repositoryPath" />
+      <Variable x:TypeArguments="sd:DataTable" Name="ManifestTable" />
+      <Variable x:TypeArguments="x:String" Name="packageVersion" />
+      <Variable x:TypeArguments="x:Int32" Name="FailureCount" Default="0" />
+      <Variable x:TypeArguments="x:Int32" Name="ProjectCount" Default="0" />
+    </Sequence.Variables>
+
+    <ui:LogMessage DisplayName="Log Pipeline Start" Level="Info" Message="[&quot;MultiProjectCI started. RepositoryUrl=&quot; &amp; RepositoryUrl &amp; &quot; Branch=&quot; &amp; RepositoryBranch]" />
+
+    <!-- Same "Clone" stage as the official template, run once for the whole repo -->
+    <upa:Stage DisplayName="Clone">
+      <upa:Stage.Activities>
+        <ActivityAction>
+          <Sequence>
+            <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
+            <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
+            <ui:LogMessage DisplayName="Log Cloned" Level="Info" Message="[&quot;Cloned &quot; &amp; RepositoryUrl &amp; &quot; to &quot; &amp; repositoryPath]" />
+          </Sequence>
+        </ActivityAction>
+      </upa:Stage.Activities>
+    </upa:Stage>
+
+    <!-- Read the manifest that ships in this repo at
+         pipelines/MultiProjectCI/../MultiProjectCI/projects-manifest.csv (see ManifestRelativePath) -->
+    <ui:ReadCsv DisplayName="Read Projects Manifest" FilePath="[Path.Combine(repositoryPath, ManifestRelativePath)]" Delimiter="," DataTable="[ManifestTable]" />
+
+    <Assign DisplayName="Set BuildNumber Fallback" sap2010:WorkflowViewState.IdRef="Assign_BuildNum">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[BuildNumber]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[If(String.IsNullOrWhiteSpace(BuildNumber), DateTime.UtcNow.ToString("yyyy.M.d.HHmm"), BuildNumber)]</InArgument>
+      </Assign.Value>
+    </Assign>
+
+    <ForEach x:TypeArguments="sd:DataRow" DisplayName="For Each Project In Manifest" Values="[ManifestTable.AsEnumerable()]">
+      <ActivityAction x:TypeArguments="sd:DataRow">
+        <ActivityAction.Argument>
+          <DelegateInArgument x:TypeArguments="sd:DataRow" Name="ProjectRow" />
+        </ActivityAction.Argument>
+        <Sequence DisplayName="Process One Manifest Row">
+          <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="projectPath" />
+            <Variable x:TypeArguments="x:String" Name="buildOutput" />
+            <Variable x:TypeArguments="sd:DataTable" Name="analysisResult" />
+            <Variable x:TypeArguments="x:String" Name="testResultFilePath" />
+          </Sequence.Variables>
+          <Assign DisplayName="Track Project Count">
+            <Assign.To>
+              <OutArgument x:TypeArguments="x:Int32">[ProjectCount]</OutArgument>
+            </Assign.To>
+            <Assign.Value>
+              <InArgument x:TypeArguments="x:Int32">[ProjectCount + 1]</InArgument>
+            </Assign.Value>
+          </Assign>
+          <TryCatch DisplayName="Isolate Failures Per Project">
+            <TryCatch.Try>
+              <Sequence>
+                <Assign DisplayName="Resolve Project Path">
+                  <Assign.To>
+                    <OutArgument x:TypeArguments="x:String">[projectPath]</OutArgument>
+                  </Assign.To>
+                  <Assign.Value>
+                    <InArgument x:TypeArguments="x:String">[Path.Combine(repositoryPath, ProjectRow("PathToProjectJson").ToString)]</InArgument>
+                  </Assign.Value>
+                </Assign>
+                <Assign DisplayName="Resolve Package Version">
+                  <Assign.To>
+                    <OutArgument x:TypeArguments="x:String">[packageVersion]</OutArgument>
+                  </Assign.To>
+                  <Assign.Value>
+                    <InArgument x:TypeArguments="x:String">[BuildNumber]</InArgument>
+                  </Assign.Value>
+                </Assign>
+                <ui:LogMessage DisplayName="Log Project Start" Level="Info" Message="[&quot;Processing: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; (&quot; &amp; projectPath &amp; &quot;)&quot;]" />
+
+                <!-- Analyze - identical structure/attributes to the official "Analyze" stage -->
+                <If Condition="[AnalyzePolicy IsNot Nothing]" DisplayName="Analyze If Policy Provided">
+                  <If.Then>
+                    <Sequence>
+                      <upa:Analyze DisplayName="Analyze project" ProjectPath="[projectPath]" RepositoryPath="[repositoryPath]" AnalyzePolicy="[AnalyzePolicy]" AnalysisResult="[analysisResult]" />
+                      <ui:LogMessage DisplayName="Log Analyzed" Level="Info" Message="[&quot;Analyzed project: &quot; &amp; projectPath]" />
+                    </Sequence>
+                  </If.Then>
+                </If>
+
+                <!-- Run Tests - identical structure/attributes to the official "Run tests" stage,
+                     gated on both the pipeline-level SkipTesting and the manifest's RunTests column -->
+                <If Condition="[(Not SkipTesting) AndAlso (ProjectRow(&quot;RunTests&quot;).ToString.ToLower = &quot;true&quot;)]" DisplayName="Run Tests If Configured">
+                  <If.Then>
+                    <Sequence>
+                      <ui:LogMessage DisplayName="Log Run Tests" Level="Trace" Message="[&quot;Running tests from: &quot; &amp; projectPath &amp; &quot; on &quot; &amp; OrchestratorUrl &amp; &quot;, test folder: &quot; &amp; OrchestratorTestingFolder]" />
+                      <upa:RunTests DisplayName="Run Tests" ProjectPath="[projectPath]" OrchestratorUrl="[OrchestratorUrl]" FolderName="[OrchestratorTestingFolder]" RepositoryBranch="[RepositoryBranch]" RepositoryCommit="[CommitSha]" RepositoryPath="[repositoryPath]" RepositoryType="[RepositoryType]" RepositoryUrl="[RepositoryUrl]" ResultFilePath="[testResultFilePath]" SkipValidate="[SkipValidation]" Author="[CommitterUsername]" />
+                      <ui:LogMessage DisplayName="Log Ran Tests" Level="Info" Message="[&quot;Tests for &quot; &amp; projectPath &amp; &quot; complete. Results: &quot; &amp; testResultFilePath]" />
+                    </Sequence>
+                  </If.Then>
+                </If>
+
+                <!-- Build - identical attributes to the official "Build" stage -->
+                <ui:LogMessage DisplayName="Log Building" Level="Trace" Message="[&quot;Building package: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; version: &quot; &amp; packageVersion]" />
+                <upa:Build DisplayName="Build the package" ProjectPath="[projectPath]" PackagePath="[buildOutput]" Version="[packageVersion]" Author="[CommitterUsername]" RepositoryBranch="[RepositoryBranch]" RepositoryCommit="[CommitSha]" RepositoryPath="[repositoryPath]" RepositoryType="[RepositoryType]" RepositoryUrl="[RepositoryUrl]" SkipValidate="[SkipValidation]" />
+                <ui:LogMessage DisplayName="Log Built" Level="Info" Message="[&quot;Built package: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; version: &quot; &amp; packageVersion]" />
+
+                <!-- Publish package - identical attributes to the official "Publish package" stage -->
+                <ui:LogMessage DisplayName="Log Publishing" Level="Trace" Message="[&quot;Publishing &quot; &amp; buildOutput &amp; &quot; to &quot; &amp; OrchestratorUrl &amp; &quot; folder: &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
+                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[buildOutput]" OrchestratorUrl="[OrchestratorUrl]" FolderName="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" TimeoutMS="60000" />
+                <ui:LogMessage DisplayName="Log Published" Level="Info" Message="[&quot;Published &quot; &amp; buildOutput &amp; &quot; to &quot; &amp; OrchestratorUrl &amp; &quot; folder: &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
+
+                <!-- Update process - identical attributes to the official "Update process" stage -->
+                <ui:LogMessage DisplayName="Log Updating Process" Level="Trace" Message="[&quot;Updating process &quot; &amp; ProjectRow(&quot;ProcessName&quot;).ToString &amp; &quot; in folder &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
+                <upa:UpdateProcess DisplayName="Update Process on destination" OrchestratorUrl="[OrchestratorUrl]" FolderName="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[packageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
+                <ui:LogMessage DisplayName="Log Project Success" Level="Info" Message="[&quot;Completed: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; packageVersion]" />
+              </Sequence>
+            </TryCatch.Try>
+            <TryCatch.Catches>
+              <Catch x:TypeArguments="System.Exception">
+                <ActivityAction x:TypeArguments="System.Exception">
+                  <ActivityAction.Argument>
+                    <DelegateInArgument x:TypeArguments="System.Exception" Name="ex" />
+                  </ActivityAction.Argument>
+                  <Sequence DisplayName="Log Failure And Continue Batch">
+                    <Assign DisplayName="Increment FailureCount">
+                      <Assign.To>
+                        <OutArgument x:TypeArguments="x:Int32">[FailureCount]</OutArgument>
+                      </Assign.To>
+                      <Assign.Value>
+                        <InArgument x:TypeArguments="x:Int32">[FailureCount + 1]</InArgument>
+                      </Assign.Value>
+                    </Assign>
+                    <ui:LogMessage DisplayName="Log Project Failure" Level="Error" Message="[&quot;FAILED: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; - &quot; &amp; ex.Message]" />
+                  </Sequence>
+                </ActivityAction>
+              </Catch>
+            </TryCatch.Catches>
+          </TryCatch>
+        </Sequence>
+      </ActivityAction>
+    </ForEach>
+
+    <ui:LogMessage DisplayName="Log Pipeline Summary" Level="Info" Message="[&quot;MultiProjectCI run complete. &quot; &amp; (ProjectCount - FailureCount).ToString &amp; &quot; of &quot; &amp; ProjectCount.ToString &amp; &quot; projects succeeded.&quot;]" />
+
+    <!-- Fail the pipeline run overall if any project failed, so Automation Ops / Orchestrator
+         reports the batch's real status instead of a false "Successful" -->
+    <If Condition="[FailureCount &gt; 0]" DisplayName="Fail Job If Any Project Failed">
+      <If.Then>
+        <Throw Exception="[New Exception(FailureCount.ToString &amp; &quot; of &quot; &amp; ProjectCount.ToString &amp; &quot; projects failed in this MultiProjectCI run - see per-project Error log lines above.&quot;)]" />
+      </If.Then>
+    </If>
+  </Sequence>
+</Activity>
