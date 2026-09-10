@@ -1,0 +1,27 @@
+{
+    "name": "Email-Attachment-Sorter",
+    "description": "Reads a shared mailbox, extracts attachments, and files them by sender/subject rules.",
+    "main": "Main.xaml",
+    "dependencies": {
+          "UiPath.System.Activities": "[24.10.3]",
+          "UiPath.Testing.Activities": "[24.10.2]"
+    },
+    "webServices": [],
+    "schemaVersion": "4.0",
+    "studioVersion": "24.10.3.0",
+    "projectId": "f4ecbe6c-6b59-4e84-8bcd-3d33ff2721af",
+    "libraryOptions": null,
+    "designOptions": {
+          "projectProfile": "Developer",
+          "outputType": "Process",
+          "fileInfoCollection": [
+                  {
+                            "FilePath": "Main.xaml",
+                            "IsMainFile": true,
+                            "UniqueId": "e54f23b7-532d-4072-9577-a2a7e8ddb45e"
+                  }
+          ]
+    },
+    "expressionLanguage": "VisualBasic",
+    "targetFramework": "Windows"
+}
