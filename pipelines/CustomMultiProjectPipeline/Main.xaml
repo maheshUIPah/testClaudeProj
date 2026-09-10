@@ -1,0 +1,61 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="CustomMultiProjectPipeline" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- IMPORTANT: hand-authored skeleton (no Studio in this environment). Comment placeholders below mark where real UiPath.Pipelines.Activities activities (Clone, Analyze, Run Tests, Build, Publish Package, Update Process) must be dragged in from Studio. Open in Studio, replace each TODO Comment, then Publish this project to the Pipelines Orchestrator folder before any Automation Ops pipeline definition can reference it. -->
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System">
+      <x:String>System</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.Activities.Statements</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <x:Members>
+    <x:Property Name="RepositoryBranch" Type="InArgument(x:String)" />
+    <x:Property Name="ManifestRelativePath" Type="InArgument(x:String)" />
+  </x:Members>
+  <Sequence sap2010:WorkflowViewState.IdRef="Sequence_Main">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Name="RepoLocalPath" />
+      <Variable x:TypeArguments="System.Data.DataTable" Name="ManifestTable" />
+    </Sequence.Variables>
+    <ui:LogMessage DisplayName="Log Pipeline Start" Level="Info" Message="[&quot;CustomMultiProjectPipeline started for branch: &quot; &amp; RepositoryBranch]" />
+    <Comment DisplayName="TODO: Clone activity - Branch RepositoryBranch, output RepoLocalPath" />
+    <ui:ReadCsv DisplayName="Read Projects Manifest" FilePath="[System.IO.Path.Combine(RepoLocalPath, ManifestRelativePath)]" Delimiter="," DataTable="[ManifestTable]" />
+    <ForEach x:TypeArguments="System.Data.DataRow" DisplayName="For Each Project In Manifest" Values="[ManifestTable.AsEnumerable()]">
+      <ActivityAction x:TypeArguments="System.Data.DataRow">
+        <ActivityAction.Argument>
+          <DelegateInArgument x:TypeArguments="System.Data.DataRow" Name="ProjectRow" />
+        </ActivityAction.Argument>
+        <Sequence DisplayName="Process One Manifest Row">
+          <TryCatch DisplayName="Isolate Failures Per Project">
+            <TryCatch.Try>
+              <Sequence>
+                <ui:LogMessage DisplayName="Log Project Start" Level="Info" Message="[&quot;Processing: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString]" />
+                <Comment DisplayName="TODO: Analyze activity against Workflow Analyzer ruleset" />
+                <If DisplayName="Run Tests If Configured" Condition="[ProjectRow(&quot;RunTests&quot;).ToString.ToLower = &quot;true&quot;]">
+                  <If.Then>
+                    <Comment DisplayName="TODO: Run Tests activity" />
+                  </If.Then>
+                </If>
+                <Comment DisplayName="TODO: Build activity - produces package from project.json" />
+                <Comment DisplayName="TODO: Publish Package activity - to feed for ProjectRow OrchestratorFolder" />
+                <Comment DisplayName="TODO: Update Process activity - Folder/ProcessName from ProjectRow" />
+                <ui:LogMessage DisplayName="Log Project Success" Level="Info" Message="[&quot;Completed: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString]" />
+              </Sequence>
+            </TryCatch.Try>
+            <TryCatch.Catches>
+              <Catch x:TypeArguments="System.Exception">
+                <ActivityAction x:TypeArguments="System.Exception">
+                  <ActivityAction.Argument>
+                    <DelegateInArgument x:TypeArguments="System.Exception" Name="ex" />
+                  </ActivityAction.Argument>
+                  <ui:LogMessage DisplayName="Log Project Failure" Level="Error" Message="[&quot;FAILED: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; - &quot; &amp; ex.Message]" />
+                </ActivityAction>
+              </Catch>
+            </TryCatch.Catches>
+          </TryCatch>
+        </Sequence>
+      </ActivityAction>
+    </ForEach>
+    <ui:LogMessage DisplayName="Log Pipeline Complete" Level="Info" Message="CustomMultiProjectPipeline run complete - see per-project log lines above" />
+  </Sequence>
+</Activity>
