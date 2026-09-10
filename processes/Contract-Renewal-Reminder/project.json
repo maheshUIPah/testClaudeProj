@@ -1,0 +1,27 @@
+{
+    "name": "Contract-Renewal-Reminder",
+    "description": "Scans the contracts repository for upcoming expirations and notifies account owners.",
+    "main": "Main.xaml",
+    "dependencies": {
+          "UiPath.System.Activities": "[24.10.3]",
+          "UiPath.Testing.Activities": "[24.10.2]"
+    },
+    "webServices": [],
+    "schemaVersion": "4.0",
+    "studioVersion": "24.10.3.0",
+    "projectId": "4ceee63e-378f-47bb-9442-533308118b30",
+    "libraryOptions": null,
+    "designOptions": {
+          "projectProfile": "Developer",
+          "outputType": "Process",
+          "fileInfoCollection": [
+                  {
+                            "FilePath": "Main.xaml",
+                            "IsMainFile": true,
+                            "UniqueId": "e6f837a0-b6b4-4482-9a40-120f1da0816a"
+                  }
+          ]
+    },
+    "expressionLanguage": "VisualBasic",
+    "targetFramework": "Windows"
+}
