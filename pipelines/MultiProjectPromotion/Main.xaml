@@ -2,12 +2,20 @@
   <!--
     ============================================================================
     MultiProjectPromotion - built on UiPath's official "Copy package between
-    environments" Automation Ops Pipeline template (UiPath.Pipelines.Activities
-    2.0.0, package v2.0.1). The upa:DownloadPackage / upa:PublishPackage
-    activities and argument names below are copied from that shipped
-    template. The only change is looping the Download/Publish pair once per
-    row of projects-manifest.csv (using each row's PackageName) instead of a
-    single PackageName per run, so all processes for a customer promote
+    environments" Automation Ops Pipeline template, targeting
+    UiPath.Pipelines.Activities 3.0.5. The upa:DownloadPackage /
+    upa:PublishPackage / upa:UpdateProcess activities and argument names
+    below are sourced from the official UiPath.Pipelines.Activities 3.0
+    activity documentation (github.com/UiPath/skills, uipath-rpa skill).
+    Note the v3.0 API: activities that connect to Orchestrator take Tenant
+    (OrchestratorTenant) and Folder (OrchestratorFolder) instead of the v2.0
+    OrchestratorUrl/FolderName plain-string arguments; both new types accept
+    a plain string via implicit conversion, so the pipeline-level
+    Source/DestinationOrchestratorUrl/Folder arguments stay plain strings.
+    The only structural change from the OOB template is looping the
+    Download/Publish/UpdateProcess triple once per row of
+    projects-manifest.csv (using each row's PackageName) instead of a single
+    PackageName per run, so all processes for a customer promote
     Dev -> UAT -> Prod together from one pipeline definition. Assumes every
     process in the manifest is promoted at the same PackageVersion for a
     given run (the coordinated-release model); split into multiple manifests
@@ -70,14 +78,18 @@
 
     <ui:LogMessage DisplayName="Log Promotion Start" Level="Info" Message="[&quot;MultiProjectPromotion started. &quot; &amp; SourceOrchestratorFolder &amp; &quot; -&gt; &quot; &amp; DestinationOrchestratorFolder &amp; &quot;, version &quot; &amp; PackageVersion]" />
 
-    <!-- Clone once, purely to read the manifest file that travels with the source code -->
+    <!-- Clone once, purely to read the manifest file that travels with the source code.
+         Stage.Activities wraps its child Sequence in ActivityAction.Handler
+         (UiPath.Pipelines.Activities 3.0 Stage.md XAML Example) -->
     <upa:Stage DisplayName="Clone">
       <upa:Stage.Activities>
         <ActivityAction>
-          <Sequence>
-            <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
-            <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
-          </Sequence>
+          <ActivityAction.Handler>
+            <Sequence>
+              <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
+              <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
+            </Sequence>
+          </ActivityAction.Handler>
         </ActivityAction>
       </upa:Stage.Activities>
     </upa:Stage>
@@ -108,16 +120,16 @@
 
                 <!-- Download package - identical attributes to the official "Download package" stage -->
                 <ui:LogMessage DisplayName="Log Downloading" Level="Trace" Message="[&quot;Downloading &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString]" />
-                <upa:DownloadPackage DisplayName="Download Package" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" IsLibrary="False" FolderName="[SourceOrchestratorFolder]" OrchestratorUrl="[SourceOrchestratorUrl]" PackagePath="[packagePath]" TimeoutMS="60000" />
+                <upa:DownloadPackage DisplayName="Download Package" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" IsLibrary="False" Folder="[SourceOrchestratorFolder]" Tenant="[SourceOrchestratorUrl]" PackagePath="[packagePath]" TimeoutMS="60000" />
                 <ui:LogMessage DisplayName="Log Downloaded" Level="Info" Message="[&quot;Downloaded &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; PackageVersion &amp; &quot; to &quot; &amp; packagePath]" />
 
                 <!-- Publish package - identical attributes to the official "Publish package" stage -->
                 <ui:LogMessage DisplayName="Log Publishing" Level="Trace" Message="[&quot;Publishing &quot; &amp; packagePath &amp; &quot; to &quot; &amp; DestinationOrchestratorUrl &amp; &quot; folder: &quot; &amp; DestinationOrchestratorFolder]" />
-                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[packagePath]" OrchestratorUrl="[DestinationOrchestratorUrl]" FolderName="[DestinationOrchestratorFolder]" TimeoutMS="60000" />
+                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[packagePath]" Tenant="[DestinationOrchestratorUrl]" Folder="[DestinationOrchestratorFolder]" TimeoutMS="60000" />
                 <ui:LogMessage DisplayName="Log Published" Level="Info" Message="[&quot;Published &quot; &amp; packagePath &amp; &quot; to &quot; &amp; DestinationOrchestratorUrl &amp; &quot; folder: &quot; &amp; DestinationOrchestratorFolder]" />
 
                 <!-- Update process so the destination folder's Process points at the newly-promoted version -->
-                <upa:UpdateProcess DisplayName="Update Process on destination" OrchestratorUrl="[DestinationOrchestratorUrl]" FolderName="[DestinationOrchestratorFolder]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
+                <upa:UpdateProcess DisplayName="Update Process on destination" Tenant="[DestinationOrchestratorUrl]" Folder="[DestinationOrchestratorFolder]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[PackageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
                 <ui:LogMessage DisplayName="Log Project Success" Level="Info" Message="[&quot;Promoted: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; PackageVersion &amp; &quot; to &quot; &amp; DestinationOrchestratorFolder]" />
               </Sequence>
             </TryCatch.Try>
