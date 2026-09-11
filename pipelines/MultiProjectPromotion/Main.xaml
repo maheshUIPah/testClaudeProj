@@ -1,4 +1,4 @@
-<Activity mc:Ignorable="sap sap2010" x:Class="Main" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:this="clr-namespace:" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:upa="clr-namespace:UiPath.Pipelines.Activities;assembly=UiPath.Pipelines.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Activity mc:Ignorable="sap sap2010" x:Class="Main" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:csv="clr-namespace:UiPath.CSV.Activities;assembly=UiPath.Excel.Activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:this="clr-namespace:" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:upa="clr-namespace:UiPath.Pipelines.Activities;assembly=UiPath.Pipelines.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!--
     ============================================================================
     MultiProjectPromotion - built on UiPath's official "Copy package between
@@ -46,6 +46,7 @@
       <x:String>System.Linq</x:String>
       <x:String>UiPath.Core.Activities</x:String>
       <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.CSV.Activities</x:String>
       <x:String>UiPath.Pipelines.Activities</x:String>
       <x:String>UiPath.Pipelines.Activities.Stages</x:String>
       <x:String>UiPath.Pipelines.Activities.BaseActivities</x:String>
@@ -59,6 +60,7 @@
       <AssemblyReference>System.Activities</AssemblyReference>
       <AssemblyReference>System.Data.Common</AssemblyReference>
       <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>UiPath.Excel.Activities</AssemblyReference>
       <AssemblyReference>UiPath.Orchestrator.Client</AssemblyReference>
       <AssemblyReference>UiPath.Pipelines.Activities</AssemblyReference>
       <AssemblyReference>UiPath.Platform</AssemblyReference>
@@ -94,7 +96,9 @@
       </upa:Stage.Activities>
     </upa:Stage>
 
-    <ui:ReadCsv DisplayName="Read Projects Manifest" FilePath="[Path.Combine(repositoryPath, ManifestRelativePath)]" Delimiter="," DataTable="[ManifestTable]" />
+    <!-- Real activity is UiPath.CSV.Activities.ReadCsvFile (package UiPath.Excel.Activities) -
+         "ui:ReadCsv" does not exist. -->
+    <csv:ReadCsvFile DisplayName="Read Projects Manifest" FilePath="[Path.Combine(repositoryPath, ManifestRelativePath)]" IncludeColumnNames="True" DataTable="[ManifestTable]" />
 
     <ForEach x:TypeArguments="sd:DataRow" DisplayName="For Each Project In Manifest" Values="[ManifestTable.AsEnumerable()]">
       <ActivityAction x:TypeArguments="sd:DataRow">
