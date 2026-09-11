@@ -2,10 +2,17 @@
   <!--
     ============================================================================
     MultiProjectCI - built on UiPath's official "Update with tests" Automation
-    Ops Pipeline template (UiPath.Pipelines.Activities 2.0.0, package v2.0.1).
+    Ops Pipeline template, targeting UiPath.Pipelines.Activities 3.0.5.
     Every upa:* activity below (Clone, Analyze, RunTests, Build, PublishPackage,
-    UpdateProcess) and its argument names are copied from that shipped
-    template - nothing invented. The only change is: instead of one
+    UpdateProcess) and its argument names are sourced from the official
+    UiPath.Pipelines.Activities 3.0 activity documentation
+    (github.com/UiPath/skills, uipath-rpa skill) - nothing invented. Note the
+    v3.0 API: activities that connect to Orchestrator take Tenant
+    (OrchestratorTenant) and Folder (OrchestratorFolder) instead of the v2.0
+    OrchestratorUrl/FolderName plain-string arguments; both new types accept
+    a plain string via implicit conversion, so the pipeline-level
+    OrchestratorUrl/OrchestratorTestingFolder arguments stay plain strings.
+    The only structural change from the OOB template is: instead of one
     ProjectPath/ProcessName/OrchestratorFolder per pipeline run, this version
     clones the repo once and then loops the Analyze/Test/Build/Publish/Update
     sequence once per row of projects-manifest.csv, so N independent projects
@@ -87,15 +94,19 @@
 
     <ui:LogMessage DisplayName="Log Pipeline Start" Level="Info" Message="[&quot;MultiProjectCI started. RepositoryUrl=&quot; &amp; RepositoryUrl &amp; &quot; Branch=&quot; &amp; RepositoryBranch]" />
 
-    <!-- Same "Clone" stage as the official template, run once for the whole repo -->
+    <!-- Same "Clone" stage as the official template, run once for the whole repo.
+         Stage.Activities wraps its child Sequence in ActivityAction.Handler
+         (UiPath.Pipelines.Activities 3.0 Stage.md XAML Example) -->
     <upa:Stage DisplayName="Clone">
       <upa:Stage.Activities>
         <ActivityAction>
-          <Sequence>
-            <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
-            <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
-            <ui:LogMessage DisplayName="Log Cloned" Level="Info" Message="[&quot;Cloned &quot; &amp; RepositoryUrl &amp; &quot; to &quot; &amp; repositoryPath]" />
-          </Sequence>
+          <ActivityAction.Handler>
+            <Sequence>
+              <ui:LogMessage DisplayName="Log Cloning" Level="Trace" Message="[&quot;Cloning &quot; &amp; RepositoryUrl]" />
+              <upa:Clone DisplayName="Clone project" RepoUrl="[RepositoryUrl]" CommitSha="[CommitSha]" RepositoryPath="[repositoryPath]" TimeoutMS="60000" />
+              <ui:LogMessage DisplayName="Log Cloned" Level="Info" Message="[&quot;Cloned &quot; &amp; RepositoryUrl &amp; &quot; to &quot; &amp; repositoryPath]" />
+            </Sequence>
+          </ActivityAction.Handler>
         </ActivityAction>
       </upa:Stage.Activities>
     </upa:Stage>
@@ -170,7 +181,7 @@
                   <If.Then>
                     <Sequence>
                       <ui:LogMessage DisplayName="Log Run Tests" Level="Trace" Message="[&quot;Running tests from: &quot; &amp; projectPath &amp; &quot; on &quot; &amp; OrchestratorUrl &amp; &quot;, test folder: &quot; &amp; OrchestratorTestingFolder]" />
-                      <upa:RunTests DisplayName="Run Tests" ProjectPath="[projectPath]" OrchestratorUrl="[OrchestratorUrl]" FolderName="[OrchestratorTestingFolder]" RepositoryBranch="[RepositoryBranch]" RepositoryCommit="[CommitSha]" RepositoryPath="[repositoryPath]" RepositoryType="[RepositoryType]" RepositoryUrl="[RepositoryUrl]" ResultFilePath="[testResultFilePath]" SkipValidate="[SkipValidation]" Author="[CommitterUsername]" />
+                      <upa:RunTests DisplayName="Run Tests" ProjectPath="[projectPath]" Tenant="[OrchestratorUrl]" Folder="[OrchestratorTestingFolder]" RepositoryBranch="[RepositoryBranch]" RepositoryCommit="[CommitSha]" RepositoryPath="[repositoryPath]" RepositoryType="[RepositoryType]" RepositoryUrl="[RepositoryUrl]" ResultFilePath="[testResultFilePath]" SkipValidate="[SkipValidation]" Author="[CommitterUsername]" />
                       <ui:LogMessage DisplayName="Log Ran Tests" Level="Info" Message="[&quot;Tests for &quot; &amp; projectPath &amp; &quot; complete. Results: &quot; &amp; testResultFilePath]" />
                     </Sequence>
                   </If.Then>
@@ -183,12 +194,12 @@
 
                 <!-- Publish package - identical attributes to the official "Publish package" stage -->
                 <ui:LogMessage DisplayName="Log Publishing" Level="Trace" Message="[&quot;Publishing &quot; &amp; buildOutput &amp; &quot; to &quot; &amp; OrchestratorUrl &amp; &quot; folder: &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
-                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[buildOutput]" OrchestratorUrl="[OrchestratorUrl]" FolderName="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" TimeoutMS="60000" />
+                <upa:PublishPackage DisplayName="Publish Package to destination" PackagePath="[buildOutput]" Tenant="[OrchestratorUrl]" Folder="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" TimeoutMS="60000" />
                 <ui:LogMessage DisplayName="Log Published" Level="Info" Message="[&quot;Published &quot; &amp; buildOutput &amp; &quot; to &quot; &amp; OrchestratorUrl &amp; &quot; folder: &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
 
                 <!-- Update process - identical attributes to the official "Update process" stage -->
                 <ui:LogMessage DisplayName="Log Updating Process" Level="Trace" Message="[&quot;Updating process &quot; &amp; ProjectRow(&quot;ProcessName&quot;).ToString &amp; &quot; in folder &quot; &amp; ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" />
-                <upa:UpdateProcess DisplayName="Update Process on destination" OrchestratorUrl="[OrchestratorUrl]" FolderName="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[packageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
+                <upa:UpdateProcess DisplayName="Update Process on destination" Tenant="[OrchestratorUrl]" Folder="[ProjectRow(&quot;OrchestratorFolder&quot;).ToString]" PackageName="[ProjectRow(&quot;PackageName&quot;).ToString]" PackageVersion="[packageVersion]" ProcessName="[ProjectRow(&quot;ProcessName&quot;).ToString]" TimeoutMS="60000" />
                 <ui:LogMessage DisplayName="Log Project Success" Level="Info" Message="[&quot;Completed: &quot; &amp; ProjectRow(&quot;PackageName&quot;).ToString &amp; &quot; v&quot; &amp; packageVersion]" />
               </Sequence>
             </TryCatch.Try>
