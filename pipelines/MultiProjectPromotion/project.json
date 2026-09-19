@@ -4,7 +4,7 @@
   "description": "Multi-project extension of UiPath's official 'Copy package between environments' Automation Ops Pipeline template (v2.0.1): Download package from a source Orchestrator folder, Publish it to a destination Orchestrator folder, looped over every project listed in projects-manifest.csv so one pipeline run promotes all of them together (e.g. shared/DEV -> mk/UAT, or mk/UAT -> mk-laptop/PROD). Per-project failures are isolated so one broken project does not stop the batch; the run still fails overall if any project failed.",
   "main": "Main.xaml",
   "dependencies": {
-    "UiPath.Excel.Activities": "3.6.0",
+    "UiPath.Excel.Activities": "3.6.1",
     "UiPath.Pipelines.Activities": "3.0.5",
     "UiPath.System.Activities": "24.10.3",
     "UiPath.System.Runtime.Portable": "23.4.2",
