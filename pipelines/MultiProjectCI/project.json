@@ -4,7 +4,7 @@
   "description": "Multi-project extension of UiPath's official 'Update with tests' Automation Ops Pipeline template (v2.0.1): Clone - Analyze - Run Tests - Build - Publish package - Update process, looped over every project listed in projects-manifest.csv instead of a single ProjectPath. Per-project failures are isolated (TryCatch) so one broken project does not stop the batch, and the run still fails overall if any project failed.",
   "main": "Main.xaml",
   "dependencies": {
-    "UiPath.Excel.Activities": "3.6.0",
+    "UiPath.Excel.Activities": "3.6.1",
     "UiPath.Pipelines.Activities": "3.0.5",
     "UiPath.System.Activities": "24.10.3",
     "UiPath.System.Runtime.Portable": "23.4.2",
